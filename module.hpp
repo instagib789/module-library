@@ -6,7 +6,7 @@
 
 namespace module {
 
-std::tuple<uint64_t, size_t> GetModuleAddress(const std::wstring_view& module_name);
+std::tuple<uint64_t, size_t> GetModuleAddress(const std::wstring_view& w_module_name);
 std::tuple<uint64_t, size_t> GetModuleAddress(const std::string_view& module_name);
 
 size_t GetModuleSize(uint64_t module_address);

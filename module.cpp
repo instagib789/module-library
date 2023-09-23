@@ -2,8 +2,11 @@
 
 #include <algorithm>
 #include <cwctype>
+#include <memory>
 
-std::tuple<uint64_t, size_t> module::GetModuleAddress(const std::wstring_view& module_name) {
+#include "phnt.h"
+
+std::tuple<uint64_t, size_t> module::GetModuleAddress(const std::wstring_view& w_module_name) {
     PEB* p_peb = NtCurrentTeb()->ProcessEnvironmentBlock;
 
     // Loop through loaded modules.
@@ -13,7 +16,7 @@ std::tuple<uint64_t, size_t> module::GetModuleAddress(const std::wstring_view& m
         auto* p_entry = reinterpret_cast<LDR_DATA_TABLE_ENTRY*>(p_list_entry);
 
         // Compare the module names, case-insensitive.
-        if (std::ranges::equal(module_name, std::wstring_view(p_entry->BaseDllName.Buffer),
+        if (std::ranges::equal(w_module_name, std::wstring_view(p_entry->BaseDllName.Buffer),
                                [](wchar_t a, wchar_t b) { return (std::towlower(a) == std::towlower(b)); })) {
             auto module_address = reinterpret_cast<uint64_t>(p_entry->DllBase);
 
@@ -38,14 +41,13 @@ std::tuple<uint64_t, size_t> module::GetModuleAddress(const std::wstring_view& m
 }
 
 std::tuple<uint64_t, size_t> module::GetModuleAddress(const std::string_view& module_name) {
-    // Convert to wide character, sadly there isn't a great way to do this.
-    size_t size = module_name.size();
-    std::wstring new_module_name(L"", size);
-    new_module_name.resize(size);
-    size_t converted = 0;
-    mbstowcs_s(&converted, new_module_name.data(), size + 1, module_name.data(), size);
+    size_t w_size = module_name.size();
+    auto w_module_name = std::make_unique<wchar_t[]>(w_size + 1);
 
-    return GetModuleAddress(new_module_name);
+    size_t converted = 0;
+    mbstowcs_s(&converted, w_module_name.get(), w_size + 1, module_name.data(), w_size);
+
+    return GetModuleAddress(w_module_name.get());
 }
 
 size_t module::GetModuleSize(uint64_t module_address) {
@@ -63,9 +65,8 @@ std::tuple<uint32_t, size_t> module::GetSectionRva(uint64_t module_address, cons
     IMAGE_SECTION_HEADER* section_array = IMAGE_FIRST_SECTION(p_nt_header);
     for (uint16_t i = 0; i < p_nt_header->FileHeader.NumberOfSections; i++) {
         // Section names can only be 8 characters long and may not have null-terminators.
-        if (section_name.compare(
-                std::string_view(reinterpret_cast<const char*>(section_array[i].Name),
-                                 strnlen_s(reinterpret_cast<const char*>(section_array[i].Name), 8))) == 0) {
+        auto found_section_name = reinterpret_cast<const char*>(section_array[i].Name);
+        if (section_name.compare(std::string_view(found_section_name, strnlen_s(found_section_name, 8))) == 0) {
             return std::make_tuple(section_array[i].VirtualAddress, section_array[i].Misc.VirtualSize);
         }
     }
@@ -144,14 +145,14 @@ uint32_t module::FindForwardedExportRva(const std::string_view& forward_string) 
     }
     ++split_off;
 
-    // Convert to wide character, sadly there isn't a great way to do this.
-    std::wstring module_name(L"", split_off + 3);  // 3 = 'dll'
-    module_name.resize(split_off);
-    size_t converted = 0;
-    mbstowcs_s(&converted, module_name.data(), split_off + 1, forward_string.data(), split_off);
-    module_name.append(L"dll");
+    size_t w_size = split_off + (sizeof(L"dll") / sizeof(wchar_t));
+    auto w_module_name = std::make_unique<wchar_t[]>(w_size);
 
-    auto [module_address, module_size] = GetModuleAddress(module_name);
+    size_t converted = 0;
+    mbstowcs_s(&converted, w_module_name.get(), split_off + 1, forward_string.data(), split_off);
+    wcscat_s(w_module_name.get(), w_size, L"dll");
+
+    auto [module_address, module_size] = GetModuleAddress(w_module_name.get());
     if (module_address == 0) {
         return 0;
     }
