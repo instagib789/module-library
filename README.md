@@ -1,6 +1,6 @@
 ### Module Library
 
-A Windows library that iterates internally loaded modules with the PEB and can get information about modules, sections,
+A Windows library that iterates internally loaded modules with the PEB and gets information about modules, sections,
 and exports (even forwarded exports!).
 
 **Examples**
