@@ -4,8 +4,6 @@
 #include <cwctype>
 #include <memory>
 
-#include "phnt.h"
-
 std::tuple<uint64_t, size_t> module::GetModuleAddress(const std::wstring_view& w_module_name) {
     PEB* p_peb = NtCurrentTeb()->ProcessEnvironmentBlock;
 
