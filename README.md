@@ -1,6 +1,6 @@
 ### Module Library
 
-A Windows library that iterates internally loaded modules with the PEB and gets information about modules, sections,
+A Windows x64 library that iterates internally loaded modules with the PEB and gets information about modules, sections,
 and exports (even forwarded exports!).
 
 **Examples**
@@ -22,4 +22,5 @@ export_address = module::GetExportAddress(module_address, "", true, 1536);
 **Requires**
 
 - C++ 20 or later.
+- Windows x64
 - Your own Windows headers (I recommend [phnt](https://github.com/winsiderss/systeminformer/tree/master/phnt)).
