@@ -9,7 +9,7 @@ std::tuple<uint64_t, size_t> module::GetModuleAddress(const std::wstring_view& w
 
     // Loop through loaded modules.
     for (LIST_ENTRY* p_list_entry = p_peb->Ldr->InLoadOrderModuleList.Flink;
-         reinterpret_cast<uint64_t>(p_list_entry) != reinterpret_cast<uint64_t>(p_peb->Ldr) + 0x10;
+         p_list_entry != &p_peb->Ldr->InLoadOrderModuleList;
          p_list_entry = p_list_entry->Flink) {
         auto* p_entry = reinterpret_cast<LDR_DATA_TABLE_ENTRY*>(p_list_entry);
 
